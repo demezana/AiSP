@@ -1,0 +1,361 @@
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct Student {
+    char ime[50];
+    char prezime[50];
+    int bodovi;
+    struct Student* sljedeci;
+} Student;
+
+
+/* Deklaracije funkcija */
+Student* stvori_studenta(char ime[], char prezime[], int bodovi);
+void dodaj_iza(Student** glava, int pozicija);
+void dodaj_ispred(Student** glava, int pozicija);
+void sortiraj(Student* glava);
+void upisi_u_datoteku(Student* glava);
+int ucitaj_iz_datoteke(Student** glava);
+void ispisi(Student* glava);
+void oslobodi_listu(Student** glava);
+
+
+/* Stvaranje novog cvora */
+Student* stvori_studenta(char ime[], char prezime[], int bodovi) {
+    Student* novi = malloc(sizeof(Student));
+
+    if (novi == NULL) {
+        printf("Greska pri alokaciji memorije!\n");
+        return NULL;
+    }
+
+    strcpy(novi->ime, ime);
+    strcpy(novi->prezime, prezime);
+    novi->bodovi = bodovi;
+    novi->sljedeci = NULL;
+
+    return novi;
+}
+
+
+/* Dodavanje studenta iza odredenog cvora */
+void dodaj_iza(Student** glava, int pozicija) {
+    Student* tek = *glava;
+    Student* novi;
+    int broj = 1;
+
+    if (*glava == NULL) {
+        printf("Lista je prazna!\n");
+        return;
+    }
+
+    while (tek != NULL && broj < pozicija) {
+        tek = tek->sljedeci;
+        broj++;
+    }
+
+    if (tek == NULL || pozicija < 1) {
+        printf("Neispravna pozicija!\n");
+        return;
+    }
+
+    char ime[50], prezime[50];
+    int bodovi;
+
+    printf("Ime: ");
+    scanf("%49s", ime);
+
+    printf("Prezime: ");
+    scanf("%49s", prezime);
+
+    printf("Bodovi: ");
+    scanf("%d", &bodovi);
+
+    novi = stvori_studenta(ime, prezime, bodovi);
+
+    if (novi == NULL) {
+        return;
+    }
+
+    novi->sljedeci = tek->sljedeci;
+    tek->sljedeci = novi;
+
+    printf("Student je dodan iza odabranog studenta.\n");
+}
+
+
+/* Dodavanje studenta ispred odredenog cvora */
+void dodaj_ispred(Student** glava, int pozicija) {
+    Student* tek = *glava;
+    Student* novi;
+    Student* prethodni = NULL;
+    int broj = 1;
+
+    if (*glava == NULL || pozicija < 1) {
+        printf("Neispravna pozicija ili prazna lista!\n");
+        return;
+    }
+
+    while (tek != NULL && broj < pozicija) {
+        prethodni = tek;
+        tek = tek->sljedeci;
+        broj++;
+    }
+
+    if (tek == NULL) {
+        printf("Neispravna pozicija!\n");
+        return;
+    }
+
+    char ime[50], prezime[50];
+    int bodovi;
+
+    printf("Ime: ");
+    scanf("%49s", ime);
+
+    printf("Prezime: ");
+    scanf("%49s", prezime);
+
+    printf("Bodovi: ");
+    scanf("%d", &bodovi);
+
+    novi = stvori_studenta(ime, prezime, bodovi);
+
+    if (novi == NULL) {
+        return;
+    }
+
+    novi->sljedeci = tek;
+
+    if (prethodni == NULL) {
+        *glava = novi;
+    }
+    else {
+        prethodni->sljedeci = novi;
+    }
+
+    printf("Student je dodan ispred odabranog studenta.\n");
+}
+
+
+/* Sortiranje po prezimenima */
+void sortiraj(Student* P)
+{
+    Student* j, * prev_j, * temp, * end;
+
+    end = NULL;
+
+    while (P->sljedeci != end) {
+        prev_j = P;
+        j = P->sljedeci;
+
+        while (j->sljedeci != end) {
+            if (strcmp(j->prezime, j->sljedeci->prezime) > 0) {
+
+                temp = j->sljedeci;
+                prev_j->sljedeci = temp;
+                j->sljedeci = temp->sljedeci;
+                temp->sljedeci = j;
+
+                j = temp;
+            }
+
+            prev_j = j;
+            j = j->sljedeci;
+        }
+
+        end = j;
+    }
+}
+
+
+/* Zapisivanje liste u datoteku */
+void upisi_u_datoteku(Student* glava) {
+    FILE* dat = fopen("studenti.txt", "w");
+
+    if (dat == NULL) {
+        printf("Greska pri otvaranju datoteke!\n");
+        return;
+    }
+
+    Student* tek = glava;
+
+    while (tek != NULL) {
+        fprintf(dat, "%s %s %d\n",
+            tek->ime,
+            tek->prezime,
+            tek->bodovi);
+
+        tek = tek->sljedeci;
+    }
+
+    fclose(dat);
+
+    printf("Lista je zapisana u datoteku.\n");
+}
+
+
+/* Citanje liste iz datoteke */
+int ucitaj_iz_datoteke(Student** glava) {
+    FILE* dat = fopen("studenti.txt", "r");
+    char ime[50], prezime[50];
+    int bodovi;
+
+    if (dat == NULL) {
+        printf("Greska pri otvaranju datoteke!\n");
+        return 0;
+    }
+
+    Student* tek;
+
+    while (fscanf(dat, "%49s %49s %d",
+        ime, prezime, &bodovi) == 3) {
+
+        Student* novi = stvori_studenta(ime, prezime, bodovi);
+
+        if (novi == NULL) {
+            fclose(dat);
+            oslobodi_listu(glava);
+            return 0;
+        }
+
+        if (*glava == NULL) {
+            *glava = novi;
+        }
+        else {
+            tek = *glava;
+
+            while (tek->sljedeci != NULL) {
+                tek = tek->sljedeci;
+            }
+
+            tek->sljedeci = novi;
+        }
+    }
+
+    fclose(dat);
+    return 1;
+}
+
+
+/* Ispis liste i relativnih bodova */
+void ispisi(Student* glava) {
+    Student* tek = glava;
+    Student* pom;
+    int max_bodovi = 0;
+
+    while (tek != NULL) {
+        if (tek->bodovi > max_bodovi) {
+            max_bodovi = tek->bodovi;
+        }
+
+        tek = tek->sljedeci;
+    }
+
+    tek = glava;
+
+    printf("\n%-15s %-15s %-10s %-15s\n",
+        "Ime", "Prezime", "Bodovi", "Relativni (%)");
+
+    while (tek != NULL) {
+        double relativni = 0;
+
+        if (max_bodovi > 0) {
+            relativni = (double)tek->bodovi
+                / max_bodovi * 100;
+        }
+
+        printf("%-15s %-15s %-10d %.2f%%\n",
+            tek->ime,
+            tek->prezime,
+            tek->bodovi,
+            relativni);
+
+        tek = tek->sljedeci;
+    }
+}
+
+
+/* Oslobadanje memorije */
+void oslobodi_listu(Student** glava) {
+    Student* tek = *glava;
+
+    while (tek != NULL) {
+        Student* pom = tek;
+        tek = tek->sljedeci;
+        free(pom);
+    }
+
+    *glava = NULL;
+}
+
+
+/* Glavni program */
+int main(void) {
+    Student* glava = NULL;
+    int izbor, pozicija;
+
+    if (!ucitaj_iz_datoteke(&glava)) {
+        return 1;
+    }
+
+    do {
+        printf("\n--- IZBORNIK ---\n");
+        printf("1. Dodaj studenta iza odredenog studenta\n");
+        printf("2. Dodaj studenta ispred odredenog studenta\n");
+        printf("3. Sortiraj po prezimenu\n");
+        printf("4. Upisi listu u datoteku\n");
+        printf("5. Ispisi studente\n");
+        printf("0. Izlaz\n");
+        printf("Izbor: ");
+
+        if (scanf("%d", &izbor) != 1) {
+            printf("Neispravan unos!\n");
+            oslobodi_listu(&glava);
+            return 1;
+        }
+
+        switch (izbor) {
+        case 1:
+            ispisi(glava);
+            printf("Iza kojeg studenta dodati novog? ");
+            scanf("%d", &pozicija);
+            dodaj_iza(&glava, pozicija);
+            break;
+
+        case 2:
+            ispisi(glava);
+            printf("Ispred kojeg studenta dodati novog? ");
+            scanf("%d", &pozicija);
+            dodaj_ispred(&glava, pozicija);
+            break;
+
+        case 3:
+            sortiraj(glava);
+            break;
+
+        case 4:
+            upisi_u_datoteku(glava);
+            break;
+
+        case 5:
+            ispisi(glava);
+            break;
+
+        case 0:
+            printf("Kraj programa.\n");
+            break;
+
+        default:
+            printf("Nepoznata opcija!\n");
+        }
+
+    } while (izbor != 0);
+
+    oslobodi_listu(&glava);
+
+    return 0;
+}
