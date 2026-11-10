@@ -1,0 +1,206 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Polinom {
+    int koef;
+    int exp;
+    struct Polinom* sljedeci;
+} Polinom;
+
+// Umetanje clana u polinom
+// Clanovi se sortiraju po eksponentima silazno.
+// Ako postoji isti eksponent, koeficijenti se zbrajaju.
+void Umetni(Polinom* P, int koef, int exp)
+{
+    Polinom* p = P;
+    Polinom* novi;
+
+    if (koef == 0)
+        return;
+
+    while (p->sljedeci != NULL &&
+        p->sljedeci->exp > exp) {
+        p = p->sljedeci;
+    }
+
+    if (p->sljedeci != NULL &&
+        p->sljedeci->exp == exp) {
+
+        p->sljedeci->koef += koef;
+
+        if (p->sljedeci->koef == 0) {
+            novi = p->sljedeci;
+            p->sljedeci = novi->sljedeci;
+            free(novi);
+        }
+
+        return;
+    }
+
+    novi = (Polinom*)malloc(sizeof(Polinom));
+
+    if (novi == NULL) {
+        printf("Greska pri alokaciji memorije!\n");
+        exit(1);
+    }
+
+    novi->koef = koef;
+    novi->exp = exp;
+    novi->sljedeci = p->sljedeci;
+
+    p->sljedeci = novi;
+}
+
+// Ucitavanje polinoma iz datoteke
+Polinom* Ucitaj(char* ime)
+{
+    FILE* f;
+    Polinom* P;
+    int n, koef, exp, i;
+
+    f = fopen(ime, "r");
+
+    if (f == NULL) {
+        printf("Greska pri otvaranju datoteke!\n");
+        return NULL;
+    }
+
+    P = (Polinom*)malloc(sizeof(Polinom));
+
+    if (P == NULL) {
+        fclose(f);
+        return NULL;
+    }
+
+    P->sljedeci = NULL;
+
+    fscanf(f, "%d", &n);
+
+    for (i = 0; i < n; i++) {
+        fscanf(f, "%d %d", &koef, &exp);
+        Umetni(P, koef, exp);
+    }
+
+    fclose(f);
+
+    return P;
+}
+
+// Zbrajanje polinoma
+Polinom* Zbroji(Polinom* P1, Polinom* P2)
+{
+    Polinom* R;
+    Polinom* p;
+
+    R = (Polinom*)malloc(sizeof(Polinom));
+    R->sljedeci = NULL;
+
+    for (p = P1->sljedeci; p != NULL; p = p->sljedeci)
+        Umetni(R, p->koef, p->exp);
+
+    for (p = P2->sljedeci; p != NULL; p = p->sljedeci)
+        Umetni(R, p->koef, p->exp);
+
+    return R;
+}
+
+// Mnozenje polinoma
+Polinom* Pomnozi(Polinom* P1, Polinom* P2)
+{
+    Polinom* R;
+    Polinom* p, * q;
+
+    R = (Polinom*)malloc(sizeof(Polinom));
+    R->sljedeci = NULL;
+
+    for (p = P1->sljedeci; p != NULL; p = p->sljedeci) {
+        for (q = P2->sljedeci; q != NULL; q = q->sljedeci) {
+
+            Umetni(R,
+                p->koef * q->koef,
+                p->exp + q->exp);
+        }
+    }
+
+    return R;
+}
+
+// Ispis polinoma
+void Ispisi(Polinom* P)
+{
+    Polinom* p;
+
+    if (P->sljedeci == NULL) {
+        printf("0");
+        return;
+    }
+
+    for (p = P->sljedeci; p != NULL; p = p->sljedeci) {
+
+        if (p != P->sljedeci && p->koef > 0)
+            printf(" + ");
+
+        if (p->koef < 0)
+            printf(" - ");
+
+        printf("%d", abs(p->koef));
+
+        if (p->exp != 0)
+            printf("x");
+
+        if (p->exp > 1)
+            printf("^%d", p->exp);
+    }
+}
+
+// Oslobadanje memorije
+void Oslobodi(Polinom* P)
+{
+    Polinom* p;
+
+    while (P != NULL) {
+        p = P;
+        P = P->sljedeci;
+        free(p);
+    }
+}
+
+int main()
+{
+    Polinom* P1, * P2, * Z, * M;
+
+    P1 = Ucitaj("p1.txt");
+    P2 = Ucitaj("p2.txt");
+
+    if (P1 == NULL || P2 == NULL) {
+        Oslobodi(P1);
+        Oslobodi(P2);
+        return 1;
+    }
+
+    printf("Prvi polinom: ");
+    Ispisi(P1);
+
+    printf("\nDrugi polinom: ");
+    Ispisi(P2);
+
+    Z = Zbroji(P1, P2);
+
+    printf("\n\nZbroj polinoma: ");
+    Ispisi(Z);
+
+    M = Pomnozi(P1, P2);
+
+    printf("\n\nUmnozak polinoma: ");
+    Ispisi(M);
+
+    printf("\n");
+
+    Oslobodi(P1);
+    Oslobodi(P2);
+    Oslobodi(Z);
+    Oslobodi(M);
+
+    return 0;
+}
