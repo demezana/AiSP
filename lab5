@@ -1,0 +1,202 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Cvor {
+    int broj;
+    struct Cvor* sljedeci;
+} Cvor;
+
+// Dodavanje elementa na kraj liste
+void DodajNaKraj(Cvor* L, int broj)
+{
+    Cvor* novi, * p;
+
+    novi = (Cvor*)malloc(sizeof(Cvor));
+
+    if (novi == NULL) {
+        printf("Greska pri alokaciji!\n");
+        exit(1);
+    }
+
+    novi->broj = broj;
+    novi->sljedeci = NULL;
+
+    p = L;
+
+    while (p->sljedeci != NULL)
+        p = p->sljedeci;
+
+    p->sljedeci = novi;
+}
+
+// Unos liste
+void Unos(Cvor* L)
+{
+    int n, i, broj;
+
+    printf("Unesite broj elemenata: ");
+    scanf("%d", &n);
+
+    for (i = 0; i < n; i++) {
+        printf("Unesite element: ");
+        scanf("%d", &broj);
+
+        DodajNaKraj(L, broj);
+    }
+}
+
+// Ispis liste
+void Ispis(Cvor* L)
+{
+    Cvor* p = L->sljedeci;
+
+    while (p != NULL) {
+        printf("%d ", p->broj);
+        p = p->sljedeci;
+    }
+
+    printf("\n");
+}
+
+// Unija dvije sortirane liste
+Cvor* Unija(Cvor* L1, Cvor* L2)
+{
+    Cvor* R, * p, * q;
+    int x;
+
+    R = (Cvor*)malloc(sizeof(Cvor));
+    R->sljedeci = NULL;
+
+    p = L1->sljedeci;
+    q = L2->sljedeci;
+
+    while (p != NULL && q != NULL) {
+
+        if (p->broj < q->broj) {
+            x = p->broj;
+        }
+        else if (p->broj > q->broj) {
+            x = q->broj;
+        }
+        else {
+            x = p->broj;
+        }
+
+        DodajNaKraj(R, x);
+
+        // Preskakanje ponovljenih elemenata
+        while (p != NULL && p->broj == x)
+            p = p->sljedeci;
+
+        while (q != NULL && q->broj == x)
+            q = q->sljedeci;
+    }
+
+    // Preostali elementi prve liste
+    while (p != NULL) {
+        x = p->broj;
+        DodajNaKraj(R, x);
+
+        while (p != NULL && p->broj == x)
+            p = p->sljedeci;
+    }
+
+    // Preostali elementi druge liste
+    while (q != NULL) {
+        x = q->broj;
+        DodajNaKraj(R, x);
+
+        while (q != NULL && q->broj == x)
+            q = q->sljedeci;
+    }
+
+    return R;
+}
+
+// Presjek dvije sortirane liste
+Cvor* Presjek(Cvor* L1, Cvor* L2)
+{
+    Cvor* R, * p, * q;
+
+    R = (Cvor*)malloc(sizeof(Cvor));
+    R->sljedeci = NULL;
+
+    p = L1->sljedeci;
+    q = L2->sljedeci;
+
+    while (p != NULL && q != NULL) {
+
+        if (p->broj < q->broj) {
+            p = p->sljedeci;
+        }
+        else if (p->broj > q->broj) {
+            q = q->sljedeci;
+        }
+        else {
+            DodajNaKraj(R, p->broj);
+
+            int x = p->broj;
+
+            // Preskakanje ponovljenih elemenata
+            while (p != NULL && p->broj == x)
+                p = p->sljedeci;
+
+            while (q != NULL && q->broj == x)
+                q = q->sljedeci;
+        }
+    }
+
+    return R;
+}
+
+// Oslobadanje memorije
+void Oslobodi(Cvor* L)
+{
+    Cvor* p;
+
+    while (L != NULL) {
+        p = L;
+        L = L->sljedeci;
+        free(p);
+    }
+}
+
+int main()
+{
+    Cvor* L1, * L2, * U, * P;
+
+    L1 = (Cvor*)malloc(sizeof(Cvor));
+    L2 = (Cvor*)malloc(sizeof(Cvor));
+
+    L1->sljedeci = NULL;
+    L2->sljedeci = NULL;
+
+    printf("Unos prve liste:\n");
+    Unos(L1);
+
+    printf("\nUnos druge liste:\n");
+    Unos(L2);
+
+    printf("\nPrva lista: ");
+    Ispis(L1);
+
+    printf("Druga lista: ");
+    Ispis(L2);
+
+    U = Unija(L1, L2);
+    P = Presjek(L1, L2);
+
+    printf("\nUnija: ");
+    Ispis(U);
+
+    printf("Presjek: ");
+    Ispis(P);
+
+    Oslobodi(L1);
+    Oslobodi(L2);
+    Oslobodi(U);
+    Oslobodi(P);
+
+    return 0;
+}
